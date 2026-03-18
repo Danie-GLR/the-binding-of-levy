@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ display_name }} (@{{ username }}) — Roblox Tracker</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --surface: #161b22;
+    --surface2: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --purple: #bc8cff;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ---- Nav ---- */
+  .nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-brand {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .nav-search form { display: flex; gap: .4rem; }
+  .nav-search input {
+    padding: .4rem .75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: .85rem;
+    outline: none;
+    width: 180px;
+  }
+  .nav-search input:focus { border-color: var(--accent); }
+  .nav-btn {
+    padding: .4rem .8rem;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ---- Layout ---- */
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+  /* ---- Profile header ---- */
+  .profile {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+    object-fit: cover;
+  }
+  .profile-info h1 { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+  .profile-info .handle { color: var(--muted); font-size: .95rem; }
+  .profile-info .meta { color: var(--muted); font-size: .82rem; margin-top: .25rem; }
+  .profile-info .desc {
+    color: var(--muted);
+    font-size: .85rem;
+    margin-top: .35rem;
+    max-width: 500px;
+    white-space: pre-line;
+  }
+
+  /* ---- Stat cards ---- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+  }
+  .stat-card .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; margin-top: .2rem; }
+  .stat-card .value.accent { color: var(--accent); }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.orange { color: var(--orange); }
+  .stat-card .value.purple { color: var(--purple); }
+
+  /* ---- Sections ---- */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: .85rem 1.25rem;
+    font-weight: 700;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .badge-count {
+    background: var(--accent);
+    color: #fff;
+    font-size: .7rem;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  /* ---- Table ---- */
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th {
+    text-align: left;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .tbl td {
+    padding: .55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: .88rem;
+    vertical-align: middle;
+  }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: rgba(88,166,255,.04); }
+
+  .game-cell {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+  }
+  .game-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--surface2);
+    flex-shrink: 0;
+  }
+  .game-name { font-weight: 600; }
+  .game-creator { font-size: .78rem; color: var(--muted); }
+
+  .source-tag {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: 4px;
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .source-tag.created { background: rgba(63,185,80,.15); color: var(--green); }
+  .source-tag.badge { background: rgba(210,153,34,.15); color: var(--orange); }
+  .source-tag.favorite { background: rgba(188,140,255,.15); color: var(--purple); }
+
+  .online-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: .35rem;
+  }
+  .online-dot.on { background: var(--green); }
+  .online-dot.off { background: var(--muted); }
+
+  /* ---- Favorite games grid ---- */
+  .fav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: .85rem;
+    padding: 1rem 1.25rem;
+  }
+  .fav-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .fav-card:hover { border-color: var(--accent); }
+  .fav-card-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+    background: var(--bg);
+  }
+  .fav-card-body { padding: .7rem .85rem; }
+  .fav-card-title {
+    font-weight: 700;
+    font-size: .88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fav-card-meta {
+    font-size: .76rem;
+    color: var(--muted);
+    margin-top: .2rem;
+  }
+
+  /* ---- Changes ---- */
+  .diff-item { padding: .5rem 1.25rem; font-size: .88rem; }
+  .diff-item.added { color: var(--green); }
+  .diff-item.removed { color: var(--red); }
+  .diff-none { padding: .75rem 1.25rem; color: var(--muted); font-size: .88rem; }
+
+  /* ---- Tabs ---- */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: var(--radius) var(--radius) 0 0;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: .75rem 1.25rem;
+    cursor: pointer;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .empty-msg {
+    padding: 2rem 1.25rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+
+  .scanned-at {
+    text-align: right;
+    color: var(--muted);
+    font-size: .78rem;
+    margin-bottom: 1rem;
+  }
+
+  .note {
+    padding: .5rem 1.25rem;
+    font-size: .78rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+
+  .friend-link {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .friend-link:hover { text-decoration: underline; }
+
+  /* ---- Condo warning ---- */
+  .condo-banner {
+    background: rgba(248,81,73,.12);
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .condo-banner-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--red);
+    margin-bottom: .5rem;
+  }
+  .condo-banner-item {
+    font-size: .88rem;
+    padding: .25rem 0;
+    color: var(--text);
+  }
+  .condo-banner-item .reason {
+    font-size: .76rem;
+    color: var(--muted);
+    margin-left: .3rem;
+  }
+  .condo-tag {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: 4px;
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: rgba(248,81,73,.18);
+    color: var(--red);
+    margin-left: .4rem;
+  }
+
+  /* ---- Flagged user (condo) ---- */
+  .profile.flagged {
+    background: rgba(248,81,73,.08);
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+  }
+  .profile.flagged .avatar {
+    border-color: var(--red);
+    box-shadow: 0 0 12px rgba(248,81,73,.35);
+  }
+  .profile.flagged .profile-info h1 {
+    color: var(--red);
+  }
+  .profile.flagged .handle {
+    color: var(--red);
+    opacity: .85;
+  }
+  .flagged-badge {
+    display: inline-block;
+    background: var(--red);
+    color: #fff;
+    font-size: .7rem;
+    font-weight: 700;
+    padding: .15em .55em;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-left: .4rem;
+    animation: pulse-red 2s ease-in-out infinite;
+  }
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .7; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<div class="nav">
+  <a class="nav-brand" href="/">Roblox Tracker</a>
+  <div class="nav-search" style="display:flex;align-items:center;gap:1rem;">
+    <a href="/scheduler" style="color:var(--muted);font-size:.85rem;text-decoration:none;">⏱ Scanner</a>
+    <form action="/track" method="get" style="display:flex;gap:.4rem;">
+      <input type="text" name="username" placeholder="Search username…">
+      <button class="nav-btn" type="submit">Track</button>
+    </form>
+  </div>
+</div>
+
+<div class="container">
+
+  <p class="scanned-at">Scanned {{ scanned_at }}</p>
+
+  <!-- Profile -->
+  <div class="profile{% if condo_flags %} flagged{% endif %}">
+    {% if avatar_url %}
+      <img class="avatar" src="{{ avatar_url }}" alt="{{ display_name }}">
+    {% else %}
+      <div class="avatar">{{ display_name[0] | upper }}</div>
+    {% endif %}
+    <div class="profile-info">
+      <h1>{{ display_name }}
+        {% if condo_flags %}
+          <span class="flagged-badge">⚠ FLAGGED</span>
+        {% endif %}
+        {% if is_unavailable %}
+          <span style="display:inline-block;background:#95a5a6;color:#fff;font-size:.7rem;font-weight:700;padding:.15em .55em;border-radius:4px;vertical-align:middle;margin-left:.4rem;">UNAVAILABLE</span>
+        {% endif %}
+        {% if is_banned %}
+          <span style="display:inline-block;background:#e74c3c;color:#fff;font-size:.7rem;font-weight:700;padding:.15em .55em;border-radius:4px;vertical-align:middle;margin-left:.4rem;">BANNED</span>
+        {% endif %}
+      </h1>
+      <div class="handle">@{{ username }} &middot; ID {{ user_id }}</div>
+      <div class="meta">Joined {{ created_date }}</div>
+      {% if description %}
+        <div class="desc">{{ description[:200] }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Total Games</div>
+      <div class="value accent">{{ games | length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Favorites</div>
+      <div class="value purple">{{ favorite_games | length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Created</div>
+      <div class="value green">{{ created_games | length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Played (badges)</div>
+      <div class="value orange">{{ played_games | length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Badges</div>
+      <div class="value accent">{{ "{:,}".format(total_badges) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Friends</div>
+      <div class="value accent">{{ friends | length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Friends Online</div>
+      <div class="value green">{{ online_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Groups</div>
+      <div class="value accent">{{ groups | length }}</div>
+    </div>
+  </div>
+
+  {% if condo_flags %}
+  <!-- Condo Group Warning -->
+  <div class="condo-banner">
+    <div class="condo-banner-title">⚠ Condo Group Detected ({{ condo_flags | length }})</div>
+    {% for cf in condo_flags %}
+    <div class="condo-banner-item">
+      🚩 <a href="https://www.roblox.com/communities/{{ cf.group_id }}" target="_blank" rel="noopener" style="color:var(--red);font-weight:700;text-decoration:none;">{{ cf.name }}</a> — role: {{ cf.role or 'Member' }}
+      <span class="reason">({{ cf.reason }})</span>
+      {% if cf.description_snippet %}
+        <div style="font-size:.78rem;color:var(--muted);margin-left:1.2rem;margin-top:.15rem;">{{ cf.description_snippet }}{% if cf.description_snippet|length >= 120 %}…{% endif %}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="favorites">⭐ Favorites</div>
+    <div class="tab" data-tab="games">🎮 All Games</div>
+    <div class="tab" data-tab="groups">🏢 Groups</div>
+    <div class="tab" data-tab="friends">👥 Friends</div>
+    <div class="tab" data-tab="changes">🔄 Changes</div>
+    {% if is_banned or is_unavailable %}
+    <div class="tab" data-tab="archived">🗄️ Archived</div>
+    {% endif %}
+  </div>
+
+  <!-- Favorites Tab -->
+  <div class="tab-panel active" id="tab-favorites">
+    <div class="section" style="border-top:none; border-radius: 0 0 var(--radius) var(--radius);">
+      <div class="section-header">
+        Favorite Games
+        <span class="badge-count">{{ favorite_games | length }}</span>
+      </div>
+      {% if favorite_games %}
+      <div class="fav-grid">
+        {% for g in favorite_games %}
+        <div class="fav-card">
+          {% if g.thumbnail_url %}
+            <img class="fav-card-img" src="{{ g.thumbnail_url }}" alt="{{ g.name }}">
+          {% else %}
+            <div class="fav-card-img" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;">No image</div>
+          {% endif %}
+          <div class="fav-card-body">
+            <div class="fav-card-title" title="{{ g.name }}">{{ g.name }}</div>
+            <div class="fav-card-meta">by {{ g.creator_name or 'Unknown' }}</div>
+            <div class="fav-card-meta">{{ "{:,}".format(g.visits) }} visits</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="empty-msg">No favorite games found for this user.</div>
+      {% endif %}
+      <div class="note">
+        Badge count per game is shown in the All Games tab as an engagement proxy.
+      </div>
+
+      <!-- Played Games (badge-inferred) -->
+      <div class="section-header" style="margin-top:1.5rem;">
+        Played Games
+        <span class="badge-count">{{ played_games | length }}</span>
+      </div>
+      {% if played_games %}
+      <div class="fav-grid">
+        {% for g in played_games %}
+        <div class="fav-card">
+          {% if g.thumbnail_url %}
+            <img class="fav-card-img" src="{{ g.thumbnail_url }}" alt="{{ g.name }}">
+          {% else %}
+            <div class="fav-card-img" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;">No image</div>
+          {% endif %}
+          <div class="fav-card-body">
+            <div class="fav-card-title" title="{{ g.name }}">{{ g.name }}</div>
+            <div class="fav-card-meta">by {{ g.creator_name or 'Unknown' }}</div>
+            <div class="fav-card-meta">{{ g.badge_count }} badges &middot; {{ "{:,}".format(g.visits) }} visits</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="empty-msg">No played games detected (badge-based).</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- All Games Tab -->
+  <div class="tab-panel" id="tab-games">
+    <div class="section" style="border-top:none; border-radius: 0 0 var(--radius) var(--radius);">
+      <div class="section-header">
+        All Games
+        <span class="badge-count">{{ games | length }}</span>
+      </div>
+      {% if games %}
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Game</th>
+            <th>Source</th>
+            <th style="text-align:right">Visits</th>
+            <th style="text-align:right">Playing</th>
+            <th style="text-align:right">Badges Earned</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in games %}
+          <tr>
+            <td>
+              <div class="game-cell">
+                {% if g.thumbnail_url %}
+                  <img class="game-thumb" src="{{ g.thumbnail_url }}" alt="">
+                {% else %}
+                  <div class="game-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.6rem;">—</div>
+                {% endif %}
+                <div>
+                  <div class="game-name">{{ g.name }}</div>
+                  <div class="game-creator">by {{ g.creator_name or '—' }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if 'fav' in g.source %}
+                <span class="source-tag favorite">fav</span>
+              {% endif %}
+              {% if 'created' in g.source %}
+                <span class="source-tag created">created</span>
+              {% elif 'badge' in g.source %}
+                <span class="source-tag badge">badge</span>
+              {% elif g.source == 'favorite' %}
+                <span class="source-tag favorite">favorite</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right">{{ "{:,}".format(g.visits) }}</td>
+            <td style="text-align:right">{{ "{:,}".format(g.playing) }}</td>
+            <td style="text-align:right">{{ g.badge_count if g.badge_count else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <div class="empty-msg">No games found for this user.</div>
+      {% endif %}
+      <div class="note">
+        Badges Earned = number of badges this user earned in that game.
+      </div>
+    </div>
+  </div>
+
+  <!-- Groups Tab -->
+  <div class="tab-panel" id="tab-groups">
+    <div class="section" style="border-top:none; border-radius: 0 0 var(--radius) var(--radius);">
+      <div class="section-header">
+        Groups
+        <span class="badge-count">{{ groups | length }}</span>
+      </div>
+      {% if groups %}
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Group</th>
+            <th>Role</th>
+            <th style="text-align:right">Members</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in groups %}
+          {% set g = entry.group if entry.group is defined else {} %}
+          {% set r = entry.role if entry.role is defined else {} %}
+          {% set condo_ids = condo_flags | map(attribute='group_id') | list %}
+          <tr{% if g.id in condo_ids %} style="background:rgba(248,81,73,.06);"{% endif %}>
+            <td>
+              <div>
+                <div class="game-name"><a href="https://www.roblox.com/communities/{{ g.id }}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">{{ g.name or 'Unknown' }}</a>{% if g.id in condo_ids %}<span class="condo-tag">Condo</span>{% endif %}</div>
+                {% if g.description %}
+                  <div class="game-creator" title="{{ g.description }}">{{ g.description[:80] }}{% if g.description|length > 80 %}…{% endif %}</div>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              {% if r.name == 'Owner' %}
+                <span class="source-tag created">{{ r.name }}</span>
+              {% else %}
+                <span class="source-tag badge">{{ r.name or '—' }}</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right">{{ "{:,}".format(g.memberCount or 0) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <div class="empty-msg">No groups found for this user.</div>
+      {% endif %}
+
+      {% if past_groups %}
+      <div class="section-header" style="margin-top:.5rem;">
+        Past Groups
+        <span class="badge-count" style="background:var(--red);">{{ past_groups | length }}</span>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Group</th>
+            <th>Last Known Role</th>
+            <th style="text-align:right">Members</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in past_groups %}
+          <tr style="opacity:.7;">
+            <td>
+              <div class="game-name">{{ g.name or 'Unknown' }}</div>
+            </td>
+            <td>
+              <span class="source-tag badge">{{ g.role or '—' }}</span>
+            </td>
+            <td style="text-align:right">{{ "{:,}".format(g.member_count or 0) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Friends Tab -->
+  <div class="tab-panel" id="tab-friends">
+    <div class="section" style="border-top:none; border-radius: 0 0 var(--radius) var(--radius);">
+      <div class="section-header">
+        Friends
+        <span class="badge-count">{{ friends | length }}</span>
+      </div>
+      {% if friends %}
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Display Name</th>
+            <th>Username</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in friends %}
+          <tr>
+            <td>
+              <span class="online-dot {{ 'on' if f.is_online else 'off' }}"></span>
+              {{ f.presence_label }}
+              {% if f.last_location and f.is_online %}
+                <span style="color:var(--muted);font-size:.8rem;">— {{ f.last_location }}</span>
+              {% endif %}
+            </td>
+            <td><strong>{{ f.display_name }}</strong></td>
+            <td><a class="friend-link" href="/track?username={{ f.username }}">@{{ f.username }}</a></td>
+            <td><a class="friend-link" href="/track?user_id={{ f.user_id }}">Track →</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <div class="empty-msg">No friends found (list may be private).</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Changes Tab -->
+  <div class="tab-panel" id="tab-changes">
+    <div class="section" style="border-top:none; border-radius: 0 0 var(--radius) var(--radius);">
+      <div class="section-header">Changes Since Last Snapshot</div>
+      {% if games_diff.previous_snapshot %}
+        <div style="padding:.6rem 1.25rem; color:var(--muted); font-size:.82rem;">
+          Previous snapshot: {{ games_diff.previous_snapshot }}
+        </div>
+
+        {% if games_diff.added %}
+          <div style="padding:.4rem 1.25rem .2rem; font-weight:600; font-size:.82rem; color:var(--green);">+ Games Added</div>
+          {% for g in games_diff.added %}
+            <div class="diff-item added">+ {{ g.name if g.name is defined else g.get('name', 'unknown') }}</div>
+          {% endfor %}
+        {% endif %}
+
+        {% if games_diff.removed %}
+          <div style="padding:.4rem 1.25rem .2rem; font-weight:600; font-size:.82rem; color:var(--red);">− Games Removed</div>
+          {% for g in games_diff.removed %}
+            <div class="diff-item removed">− {{ g.name if g.name is defined else g.get('name', 'unknown') }}</div>
+          {% endfor %}
+        {% endif %}
+
+        {% if friends_diff.added %}
+          <div style="padding:.4rem 1.25rem .2rem; font-weight:600; font-size:.82rem; color:var(--green);">+ Friends Added</div>
+          {% for f in friends_diff.added %}
+            <div class="diff-item added">+ {{ f.display_name if f.display_name is defined else f.get('display_name', 'unknown') }} (@{{ f.username if f.username is defined else f.get('username', '?') }})</div>
+          {% endfor %}
+        {% endif %}
+
+        {% if friends_diff.removed %}
+          <div style="padding:.4rem 1.25rem .2rem; font-weight:600; font-size:.82rem; color:var(--red);">− Friends Removed</div>
+          {% for f in friends_diff.removed %}
+            <div class="diff-item removed">− {{ f.get('display_name', 'unknown') }} (@{{ f.get('username', '?') }})</div>
+          {% endfor %}
+        {% endif %}
+
+        {% if groups_diff.added %}
+          <div style="padding:.4rem 1.25rem .2rem; font-weight:600; font-size:.82rem; color:var(--green);">+ Groups Joined</div>
+          {% for g in groups_diff.added %}
+            <div class="diff-item added">+ {{ g.name or g.get('name', 'unknown') }} ({{ g.role or g.get('role', '') }})</div>
+          {% endfor %}
+        {% endif %}
+
+        {% if groups_diff.removed %}
+          <div style="padding:.4rem 1.25rem .2rem; font-weight:600; font-size:.82rem; color:var(--red);">− Groups Left</div>
+          {% for g in groups_diff.removed %}
+            <div class="diff-item removed">− {{ g.name or g.get('name', 'unknown') }}</div>
+          {% endfor %}
+        {% endif %}
+
+        {% if not games_diff.added and not games_diff.removed and not friends_diff.added and not friends_diff.removed and not groups_diff.added and not groups_diff.removed %}
+          <div class="diff-none">No changes detected since last snapshot.</div>
+        {% endif %}
+      {% else %}
+        <div class="diff-none">First scan — no previous snapshot to compare against. Run again later to see changes.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if is_banned or is_unavailable %}
+  <!-- Archived Tab -->
+  <div class="tab-panel" id="tab-archived">
+    <div class="section" style="border-top:none; border-radius: 0 0 var(--radius) var(--radius);">
+      <div class="section-header">Archived Data (Wayback Machine)</div>
+      {% if archived %}
+        <div style="padding:.6rem 1.25rem; color:var(--muted); font-size:.82rem;">
+          Recovered from snapshot dated <strong>{{ archived.snapshot_date }}</strong>
+          {% if archived.username %} &middot; Username at time: <strong>{{ archived.username }}</strong>{% endif %}
+        </div>
+
+        {% if archived_games %}
+        <div style="padding:.6rem 1.25rem .2rem; font-weight:600; font-size:.9rem;">🎮 Games Found in Archive</div>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Game</th>
+              <th>Creator</th>
+              <th style="text-align:right">Visits</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in archived_games %}
+            <tr>
+              <td><strong>{{ g.name }}</strong></td>
+              <td style="color:var(--muted)">{{ g.creator_name or '—' }}</td>
+              <td style="text-align:right">{{ "{:,}".format(g.visits) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        {% if archived_groups %}
+        <div style="padding:.6rem 1.25rem .2rem; font-weight:600; font-size:.9rem;">🏢 Groups Found in Archive</div>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th style="text-align:right">Members</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in archived_groups %}
+            <tr>
+              <td>
+                <div><strong>{{ g.name or 'Unknown' }}</strong></div>
+                {% if g.description %}
+                  <div style="color:var(--muted);font-size:.8rem;">{{ g.description[:100] }}{% if g.description|length > 100 %}…{% endif %}</div>
+                {% endif %}
+              </td>
+              <td style="text-align:right">{{ "{:,}".format(g.get('memberCount', 0)) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        {% if archived.friend_ids %}
+        <div style="padding:.6rem 1.25rem .2rem; font-weight:600; font-size:.9rem;">👥 Friend IDs Found in Archive</div>
+        <div style="padding:.4rem 1.25rem; color:var(--muted); font-size:.82rem;">
+          {{ archived.friend_ids | length }} friend(s) found:
+          {% for fid in archived.friend_ids[:50] %}
+            <a class="friend-link" href="/track?user_id={{ fid }}">{{ fid }}</a>{% if not loop.last %}, {% endif %}
+          {% endfor %}
+          {% if archived.friend_ids | length > 50 %} … and {{ archived.friend_ids | length - 50 }} more{% endif %}
+        </div>
+        {% endif %}
+
+        {% if not archived_games and not archived_groups and not archived.friend_ids %}
+          <div class="diff-none">Archived snapshot found but no games, groups, or friends could be extracted.</div>
+        {% endif %}
+      {% else %}
+        <div class="diff-none">No archived snapshots found on the Wayback Machine for this user.</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

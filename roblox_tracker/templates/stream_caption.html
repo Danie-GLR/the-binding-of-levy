@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discord Stream Caption Overlay</title>
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Teko:wght@500;600&display=swap");
+
+  :root {
+    --ink: #f9fcff;
+    --stroke: rgba(0, 0, 0, 0.95);
+    --accent: #54d3ff;
+    --accent-soft: rgba(84, 211, 255, 0.42);
+    --panel-bg: rgba(11, 21, 38, 0.9);
+    --panel-border: rgba(255, 255, 255, 0.18);
+    --sub-font: "Teko", "Impact", sans-serif;
+    --ui-font: "Rajdhani", "Trebuchet MS", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    overflow: hidden;
+    color: var(--ink);
+    font-family: var(--ui-font);
+    background:
+      radial-gradient(1200px 320px at 8% 0%, rgba(69, 132, 225, 0.24), transparent 60%),
+      radial-gradient(1300px 440px at 88% 104%, rgba(84, 211, 255, 0.2), transparent 63%),
+      linear-gradient(172deg, #03070f 0%, #0a1b37 47%, #030710 100%);
+  }
+
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  body::before {
+    background: repeating-linear-gradient(
+      -58deg,
+      transparent,
+      transparent 58px,
+      rgba(255, 255, 255, 0.016) 58px,
+      rgba(255, 255, 255, 0.016) 61px
+    );
+  }
+
+  body::after {
+    background:
+      linear-gradient(90deg, transparent 0%, rgba(84, 211, 255, 0.56) 4%, transparent 7%) no-repeat,
+      linear-gradient(90deg, transparent 94%, rgba(84, 211, 255, 0.56) 97%, transparent 100%) no-repeat;
+    opacity: 0.6;
+    mix-blend-mode: screen;
+  }
+
+  .overlay {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(18px, 3vh, 32px);
+    transform: translateX(-50%);
+    width: min(98vw, 1450px);
+    text-align: center;
+    pointer-events: none;
+    z-index: 6;
+  }
+
+  .speaker-stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 3px;
+  }
+
+  .speaker-image {
+    width: clamp(46px, 6vw, 78px);
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.44));
+  }
+
+  .caption-line {
+    margin: 0;
+    padding: 0;
+    font-family: var(--sub-font);
+    font-weight: 600;
+    letter-spacing: 1.1px;
+    line-height: 1.06;
+    font-size: clamp(38px, 5.5vw, 70px);
+    color: #ffffff;
+    -webkit-text-stroke: 3px var(--stroke);
+    text-shadow:
+      0 4px 0 var(--stroke),
+      0 0 10px rgba(0, 0, 0, 0.55);
+  }
+
+  .caption-line.idle {
+    font-size: clamp(20px, 2.6vw, 32px);
+    -webkit-text-stroke-width: 2px;
+    opacity: 0.9;
+  }
+
+  .translation-line {
+    margin: 2px 0 0;
+    min-height: 26px;
+    font-family: var(--ui-font);
+    font-size: clamp(14px, 2vw, 24px);
+    letter-spacing: .3px;
+    color: #d4f4ff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
+    opacity: .96;
+  }
+
+  .controls {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: min(430px, calc(100vw - 32px));
+    border-radius: 14px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 15px 52px rgba(0, 0, 0, 0.4);
+    padding: 14px;
+    z-index: 10;
+    display: grid;
+    gap: 10px;
+  }
+
+  .controls h1 {
+    margin: 0;
+    font-family: var(--sub-font);
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: .8px;
+    font-weight: 600;
+  }
+
+  .controls p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.35;
+    opacity: .9;
+  }
+
+  .row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  label {
+    width: 84px;
+    font-size: 12px;
+    opacity: .95;
+  }
+
+  input,
+  select,
+  button {
+    font-family: var(--ui-font);
+  }
+
+  input,
+  select {
+    flex: 1;
+    color: #f4f8ff;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 9px;
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .inline-help {
+    font-size: 11px;
+    opacity: .82;
+    margin-top: -4px;
+  }
+
+  .small-btn {
+    min-width: 132px;
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+    color: #f3f8ff;
+    background: linear-gradient(135deg, #3457a5, #1f3270);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  button {
+    flex: 1;
+    border: none;
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 9px 10px;
+    cursor: pointer;
+  }
+
+  .start {
+    color: #031324;
+    background: linear-gradient(135deg, #cef4ff, #54d3ff);
+  }
+
+  .mute {
+    color: #eef4ff;
+    background: linear-gradient(135deg, #5977ff, #3349a8);
+  }
+
+  .stop {
+    color: #ffeded;
+    background: linear-gradient(135deg, #f15858, #b72222);
+  }
+
+  .status {
+    min-height: 16px;
+    font-size: 12px;
+    opacity: .96;
+  }
+
+  .hint {
+    position: fixed;
+    left: 12px;
+    top: 12px;
+    z-index: 9;
+    padding: 7px 10px;
+    border-radius: 8px;
+    color: #e6f6ff;
+    font-size: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.46);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity .2s ease, transform .2s ease;
+    pointer-events: none;
+  }
+
+  .hint.show {
+    opacity: .96;
+    transform: translateY(0);
+  }
+
+  .gesture-start {
+    position: fixed;
+    left: 50%;
+    top: 18px;
+    transform: translateX(-50%);
+    z-index: 11;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(9, 17, 31, 0.92);
+    color: #ecf8ff;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .hidden { display: none !important; }
+
+  .overlay-only .controls { display: none; }
+
+  .muted .caption-line,
+  .muted .translation-line,
+  .muted .speaker-stack {
+    opacity: .4;
+    filter: saturate(.35);
+  }
+
+  @media (max-width: 740px) {
+    .controls {
+      position: static;
+      width: calc(100% - 20px);
+      margin: 10px;
+    }
+
+    .overlay {
+      width: calc(100% - 14px);
+      left: 7px;
+      transform: none;
+    }
+
+    .caption-line {
+      font-size: clamp(28px, 7.8vw, 42px);
+      -webkit-text-stroke-width: 2px;
+    }
+  }
+</style>
+</head>
+<body>
+  <section class="controls">
+    <h1>Azure Latch Captions</h1>
+    <p>For Discord reliability: share this browser tab/window, keep it open, and allow microphone access. Hotkey is Alt+M.</p>
+
+    <div class="row">
+      <label for="iconUrlInput">Icon Img</label>
+      <input id="iconUrlInput" value="/static/azure_latch_icon.svg" aria-label="Speaker icon image URL">
+    </div>
+
+    <div class="row">
+      <label for="langSelect">Voice In</label>
+      <select id="langSelect" aria-label="Speech language">
+        <option value="en-US" selected>English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-ES">Spanish</option>
+        <option value="fr-FR">French</option>
+        <option value="de-DE">German</option>
+        <option value="pt-BR">Portuguese (BR)</option>
+        <option value="it-IT">Italian</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="translateSelect">Translate</label>
+      <select id="translateSelect" aria-label="Translation language">
+        <option value="off" selected>Off</option>
+        <option value="en">English</option>
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="de">German</option>
+        <option value="pt">Portuguese</option>
+        <option value="it">Italian</option>
+        <option value="ja">Japanese</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="channelInput">Channel</label>
+      <input id="channelInput" placeholder="Discord text channel ID" aria-label="Discord channel ID">
+    </div>
+    <div class="row">
+      <label for="guildInput">Guild</label>
+      <input id="guildInput" placeholder="Server ID (optional)" aria-label="Discord guild ID">
+    </div>
+    <div class="row">
+      <label for="serverLinkInput">Server Link</label>
+      <input id="serverLinkInput" placeholder="discord.gg/... or discord.com/channels/..." aria-label="Discord server link">
+      <button id="resolveLinkBtn" class="small-btn" type="button">Use Link</button>
+    </div>
+    <div class="row">
+      <label for="relayToggle">Relay</label>
+      <select id="relayToggle" aria-label="Relay mode">
+        <option value="off" selected>Off</option>
+        <option value="on">Send final captions</option>
+      </select>
+    </div>
+    <div class="inline-help">Provide channel ID directly, or provide guild ID to use /dbot-configured relay channel. Bot needs Send Messages permission.</div>
+
+    <div class="buttons">
+      <button id="permissionBtn" class="start" type="button">Mic Access</button>
+      <button id="startBtn" class="start" type="button">Start</button>
+      <button id="muteBtn" class="mute" type="button">Mute (Alt+M)</button>
+      <button id="stopBtn" class="stop" type="button">Stop</button>
+    </div>
+
+    <div id="status" class="status">Idle.</div>
+  </section>
+
+  <div id="hint" class="hint">Alt+M toggles mute</div>
+  <button id="gestureStart" class="gesture-start hidden" type="button">Tap To Start Captions</button>
+
+  <section class="overlay">
+    <div id="speakerStack" class="speaker-stack">
+      <img id="speakerImage" class="speaker-image" src="/static/azure_latch_icon.svg" alt="Speaker icon">
+    </div>
+    <p id="captionLine" class="caption-line idle">Waiting for voice...</p>
+    <div id="translationLine" class="translation-line"></div>
+  </section>
+
+<script>
+(() => {
+  const status = document.getElementById("status");
+  const hint = document.getElementById("hint");
+  const captionLine = document.getElementById("captionLine");
+  const translationLine = document.getElementById("translationLine");
+  const speakerImage = document.getElementById("speakerImage");
+  const iconUrlInput = document.getElementById("iconUrlInput");
+  const langSelect = document.getElementById("langSelect");
+  const translateSelect = document.getElementById("translateSelect");
+  const channelInput = document.getElementById("channelInput");
+  const guildInput = document.getElementById("guildInput");
+  const serverLinkInput = document.getElementById("serverLinkInput");
+  const resolveLinkBtn = document.getElementById("resolveLinkBtn");
+  const relayToggle = document.getElementById("relayToggle");
+  const permissionBtn = document.getElementById("permissionBtn");
+  const startBtn = document.getElementById("startBtn");
+  const muteBtn = document.getElementById("muteBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const gestureStart = document.getElementById("gestureStart");
+
+  const params = new URLSearchParams(window.location.search);
+  const overlayOnly = params.get("overlay") === "1";
+  const autoStart = params.get("autostart") !== "0";
+  const outputLang = (params.get("to") || "off").toLowerCase();
+  const iconFromQuery = params.get("icon") || "";
+  const relayFromQuery = (params.get("relay") || "off").toLowerCase();
+  const channelFromQuery = (params.get("channel") || "").trim();
+  const guildFromQuery = (params.get("guild") || "").trim();
+  const defaultIconUrl = "/static/azure_latch_icon.svg";
+
+  if (overlayOnly) {
+    document.body.classList.add("overlay-only");
+    hint.classList.add("show");
+  }
+
+  if ([...translateSelect.options].some((option) => option.value === outputLang)) {
+    translateSelect.value = outputLang;
+  }
+  if (relayFromQuery === "on") {
+    relayToggle.value = "on";
+  }
+  if (channelFromQuery) {
+    channelInput.value = channelFromQuery;
+  }
+  if (guildFromQuery) {
+    guildInput.value = guildFromQuery;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    setStatus("Speech recognition is not supported in this browser. Use Chrome or Edge.");
+    startBtn.disabled = true;
+    return;
+  }
+
+  let recognition = null;
+  let isRunning = false;
+  let isMuted = false;
+  let micGranted = false;
+  let clearTimer = null;
+  let translateToken = 0;
+  let lastRelayAt = 0;
+
+  function setStatus(message) {
+    status.textContent = message;
+  }
+
+  function normalizeLang(code) {
+    return (code || "en").toLowerCase().replace("_", "-").split("-")[0];
+  }
+
+  function setCaption(text, idle = false) {
+    captionLine.textContent = text;
+    captionLine.classList.toggle("idle", idle);
+
+    if (clearTimer) {
+      clearTimeout(clearTimer);
+      clearTimer = null;
+    }
+
+    if (!idle && text) {
+      clearTimer = setTimeout(() => {
+        captionLine.textContent = "Waiting for voice...";
+        captionLine.classList.add("idle");
+        translationLine.textContent = "";
+      }, 4200);
+    }
+  }
+
+  function setTranslation(text) {
+    translationLine.textContent = text || "";
+  }
+
+  function updateSpeakerImage() {
+    const candidate = iconUrlInput.value.trim() || defaultIconUrl;
+    speakerImage.src = candidate;
+  }
+
+  function fallbackSpeakerImage() {
+    speakerImage.src = defaultIconUrl;
+  }
+
+  async function requestMicAccess() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus("This browser does not support microphone capture.");
+      return false;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      });
+      stream.getTracks().forEach((track) => track.stop());
+      micGranted = true;
+      permissionBtn.textContent = "Mic Ready";
+      setStatus("Microphone access granted.");
+      return true;
+    } catch (_error) {
+      micGranted = false;
+      setStatus("Microphone permission denied. Allow mic in browser site settings.");
+      return false;
+    }
+  }
+
+  async function relayCaptionToDiscord(text) {
+    if (relayToggle.value !== "on") {
+      return;
+    }
+
+    const channelId = channelInput.value.trim();
+    const guildId = guildInput.value.trim();
+    const hasChannel = /^\d{5,}$/.test(channelId);
+    const hasGuild = /^\d{5,}$/.test(guildId);
+    if (!hasChannel && !hasGuild) {
+      setStatus("Relay is ON but channel or guild ID is missing.");
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastRelayAt < 1200) {
+      return;
+    }
+    lastRelayAt = now;
+
+    try {
+      const response = await fetch("/discord-caption", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          channel_id: hasChannel ? channelId : "",
+          guild_id: hasGuild ? guildId : "",
+          source: langSelect.value,
+          text,
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setStatus(payload.error || "Discord relay failed.");
+      }
+    } catch (_error) {
+      setStatus("Could not send caption to Discord.");
+    }
+  }
+
+  async function resolveDiscordLink() {
+    const raw = serverLinkInput.value.trim();
+    if (!raw) {
+      setStatus("Paste a Discord server link first.");
+      return;
+    }
+
+    resolveLinkBtn.disabled = true;
+    resolveLinkBtn.textContent = "Resolving...";
+    try {
+      const url = new URL("/discord-resolve-link", window.location.origin);
+      url.searchParams.set("link", raw);
+      const response = await fetch(url.toString());
+      const payload = await response.json();
+      if (!response.ok) {
+        setStatus(payload.error || "Could not resolve link.");
+        return;
+      }
+      if (payload.guild_id) {
+        guildInput.value = payload.guild_id;
+      }
+      if (payload.channel_id) {
+        channelInput.value = payload.channel_id;
+      }
+      setStatus("Discord link resolved. Relay IDs filled.");
+    } catch (_error) {
+      setStatus("Failed to resolve Discord link.");
+    } finally {
+      resolveLinkBtn.disabled = false;
+      resolveLinkBtn.textContent = "Use Link";
+    }
+  }
+
+  async function maybeTranslate(text, sourceLang) {
+    const targetLang = translateSelect.value;
+    if (!text || targetLang === "off") {
+      setTranslation("");
+      return;
+    }
+
+    if (normalizeLang(sourceLang) === targetLang) {
+      setTranslation(text);
+      return;
+    }
+
+    const token = ++translateToken;
+    try {
+      const url = new URL("/translate", window.location.origin);
+      url.searchParams.set("text", text);
+      url.searchParams.set("source", sourceLang);
+      url.searchParams.set("target", targetLang);
+      const response = await fetch(url.toString());
+      const payload = await response.json();
+
+      if (token !== translateToken) {
+        return;
+      }
+
+      if (!response.ok) {
+        setStatus(payload.error || "Translation failed.");
+        setTranslation("");
+        return;
+      }
+
+      setTranslation((payload.translated_text || "").trim());
+    } catch (_error) {
+      if (token === translateToken) {
+        setStatus("Translation unavailable right now.");
+        setTranslation("");
+      }
+    }
+  }
+
+  function buildRecognition() {
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    rec.lang = langSelect.value;
+
+    rec.onstart = () => {
+      isRunning = true;
+      gestureStart.classList.add("hidden");
+      setStatus(isMuted ? "Listening (muted)..." : "Listening...");
+    };
+
+    rec.onresult = (event) => {
+      let finalText = "";
+      let interimText = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const chunk = event.results[i][0].transcript.trim();
+        if (!chunk) {
+          continue;
+        }
+        if (event.results[i].isFinal) {
+          finalText += `${chunk} `;
+        } else {
+          interimText += `${chunk} `;
+        }
+      }
+
+      const displayText = (finalText || interimText).trim();
+      if (!displayText || isMuted) {
+        return;
+      }
+
+      setCaption(displayText, false);
+      if (finalText.trim()) {
+        relayCaptionToDiscord(finalText.trim());
+        maybeTranslate(finalText.trim(), rec.lang);
+      }
+    };
+
+    rec.onerror = (event) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        setStatus("Microphone blocked. Click the lock icon in the address bar and allow mic.");
+      } else {
+        setStatus(`Speech error: ${event.error}`);
+      }
+      if (overlayOnly) {
+        gestureStart.classList.remove("hidden");
+      }
+    };
+
+    rec.onend = () => {
+      if (isRunning) {
+        try {
+          rec.start();
+        } catch (_error) {
+          setStatus("Click to resume captions.");
+          if (overlayOnly) {
+            gestureStart.classList.remove("hidden");
+          }
+        }
+      }
+    };
+
+    return rec;
+  }
+
+  async function startRecognition() {
+    if (isRunning) {
+      setStatus("Captions already running.");
+      return;
+    }
+    if (!micGranted) {
+      const ok = await requestMicAccess();
+      if (!ok) {
+        if (overlayOnly) {
+          gestureStart.classList.remove("hidden");
+        }
+        return;
+      }
+    }
+    recognition = buildRecognition();
+    try {
+      recognition.start();
+      setCaption("Speak now...", true);
+      setTranslation("");
+    } catch (_error) {
+      setStatus("Start blocked by browser. Click the page once, then press Start.");
+      if (overlayOnly) {
+        gestureStart.classList.remove("hidden");
+      }
+    }
+  }
+
+  function stopRecognition() {
+    isRunning = false;
+    if (recognition) {
+      recognition.onend = null;
+      recognition.stop();
+      recognition = null;
+    }
+    setStatus("Stopped.");
+    setCaption("Waiting for voice...", true);
+    setTranslation("");
+    if (overlayOnly) {
+      gestureStart.classList.remove("hidden");
+    }
+  }
+
+  function toggleMute() {
+    isMuted = !isMuted;
+    document.body.classList.toggle("muted", isMuted);
+    if (isMuted) {
+      setCaption("Captions muted", true);
+      setTranslation("");
+      setStatus(isRunning ? "Listening (muted)..." : "Muted.");
+      muteBtn.textContent = "Unmute (Alt+M)";
+    } else {
+      setCaption(isRunning ? "Speak now..." : "Waiting for voice...", true);
+      setStatus(isRunning ? "Listening..." : "Unmuted.");
+      muteBtn.textContent = "Mute (Alt+M)";
+    }
+  }
+
+  function hotkeyHandler(event) {
+    if (event.altKey && !event.ctrlKey && !event.shiftKey && event.key.toLowerCase() === "m") {
+      event.preventDefault();
+      toggleMute();
+    }
+  }
+
+  iconUrlInput.addEventListener("change", updateSpeakerImage);
+  speakerImage.addEventListener("error", fallbackSpeakerImage);
+
+  langSelect.addEventListener("change", () => {
+    if (isRunning) {
+      stopRecognition();
+      startRecognition();
+    }
+  });
+
+  translateSelect.addEventListener("change", () => {
+    if (translateSelect.value === "off") {
+      setTranslation("");
+    }
+  });
+
+  permissionBtn.addEventListener("click", requestMicAccess);
+  startBtn.addEventListener("click", startRecognition);
+  muteBtn.addEventListener("click", toggleMute);
+  stopBtn.addEventListener("click", stopRecognition);
+  resolveLinkBtn.addEventListener("click", resolveDiscordLink);
+  window.addEventListener("keydown", hotkeyHandler);
+  gestureStart.addEventListener("click", startRecognition);
+
+  if (iconFromQuery) {
+    iconUrlInput.value = iconFromQuery;
+  }
+  updateSpeakerImage();
+
+  if (overlayOnly) {
+    gestureStart.classList.remove("hidden");
+    setStatus("Overlay mode active. Tap to start captions if browser blocks autoplay.");
+  }
+
+  if (autoStart) {
+    setTimeout(() => startRecognition(), 150);
+  }
+})();
+</script>
+</body>
+</html>

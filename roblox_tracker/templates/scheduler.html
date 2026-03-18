@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Background Scanner — Roblox Tracker</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --surface: #161b22;
+    --surface2: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-brand {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+  h1 { font-size: 1.5rem; margin-bottom: .25rem; }
+  .subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .status-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot.off { background: var(--red); }
+  .status-text { font-weight: 600; }
+  .status-meta { color: var(--muted); font-size: .85rem; }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: .85rem 1.25rem;
+    font-weight: 700;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .badge-count {
+    background: var(--accent);
+    color: #fff;
+    font-size: .7rem;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th {
+    text-align: left;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .tbl td {
+    padding: .55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: .88rem;
+    vertical-align: middle;
+  }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: rgba(88,166,255,.04); }
+
+  .link { color: var(--accent); text-decoration: none; }
+  .link:hover { text-decoration: underline; }
+  .remove-btn {
+    color: var(--red);
+    text-decoration: none;
+    font-size: .82rem;
+    font-weight: 600;
+  }
+  .remove-btn:hover { text-decoration: underline; }
+
+  .ok { color: var(--green); }
+  .fail { color: var(--red); }
+
+  .empty-msg {
+    padding: 2rem 1.25rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+  .info-box {
+    background: rgba(88,166,255,.08);
+    border: 1px solid rgba(88,166,255,.25);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: .88rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .info-box strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-brand" href="/">Roblox Tracker</a>
+  <a class="link" href="/">← Back to Search</a>
+</div>
+
+<div class="container">
+
+  <h1>Background Scanner</h1>
+  <p class="subtitle">Automatically re-scans tracked users to build history over time</p>
+
+  <!-- Status indicator -->
+  <div class="status-bar">
+    <div class="status-dot {{ 'on' if scanner.is_running else 'off' }}"></div>
+    <div>
+      <div class="status-text">{{ 'Running' if scanner.is_running else 'Stopped' }}</div>
+      <div class="status-meta">
+        Scan interval: every {{ (scanner.interval // 3600) }}h {{ ((scanner.interval % 3600) // 60) }}m
+        · Tracking {{ tracked | length }} user(s)
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <strong>How it works:</strong> Every user you look up via the search page is automatically added to
+    the tracking list. The scanner re-scans all tracked users every {{ (scanner.interval // 3600) }} hour(s),
+    saving fresh snapshots of their games, friends, and groups. This lets the <em>Changes</em> and
+    <em>Past Groups</em> tabs detect activity even when you're not actively checking.<br><br>
+    <strong>Condo Discovery:</strong> Every 6 scan cycles, the scanner automatically cross-references
+    members of known condo groups to discover new ones. You can also
+    <a class="link" href="/scheduler/discover" onclick="return confirm('Run condo group discovery now? This may take a few minutes.')">run discovery manually</a>.<br><br>
+    <strong>Persistence:</strong> The tracked-users list, all snapshots, and discovered condo groups are saved to disk.
+    When the server restarts, scanning resumes automatically.
+    Scans only run while the server process is running — if you stop the server, no scans occur
+    until you start it again.
+  </div>
+
+  <!-- Tracked Users -->
+  <div class="section">
+    <div class="section-header">
+      Tracked Users
+      <span class="badge-count">{{ tracked | length }}</span>
+    </div>
+    {% if tracked %}
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Username</th>
+          <th>Tracked Since</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for uid, meta in tracked.items() %}
+        <tr>
+          <td>{{ uid }}</td>
+          <td><strong>{{ meta.username or '—' }}</strong></td>
+          <td style="color:var(--muted);">{{ meta.added_at[:19] | replace('T', ' ') }} UTC</td>
+          <td><a class="link" href="/track?user_id={{ uid }}">View →</a></td>
+          <td><a class="remove-btn" href="/scheduler/remove?user_id={{ uid }}"
+                 onclick="return confirm('Stop tracking user {{ uid }}?')">Remove</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-msg">No users tracked yet. Search for a user to start tracking them automatically.</div>
+    {% endif %}
+  </div>
+
+  <!-- Recent Scan Log -->
+  <div class="section">
+    <div class="section-header">
+      Recent Scan Log
+      <span class="badge-count">{{ log | length }}</span>
+    </div>
+    {% if log %}
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>Status</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in log %}
+        <tr>
+          <td style="color:var(--muted);font-size:.82rem;white-space:nowrap;">{{ entry.time }}</td>
+          <td>
+            <a class="link" href="/track?user_id={{ entry.user_id }}">
+              {{ entry.username or entry.user_id }}
+            </a>
+          </td>
+          <td>
+            {% if entry.ok %}
+              <span class="ok">✓ OK</span>
+            {% else %}
+              <span class="fail">✗ Failed</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--muted);font-size:.82rem;">
+            {% if entry.ok %}
+              {{ entry.games }} games · {{ entry.friends }} friends · {{ entry.groups }} groups
+            {% else %}
+              {{ entry.error[:80] }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-msg">No scans have run yet. The first scan starts ~10 seconds after the server launches.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+</body>
+</html>

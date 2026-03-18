@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ discord_user.display_name }} - Discord Servers</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --surface: #161b22;
+    --surface2: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-brand {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .nav-search form { display: flex; gap: .4rem; }
+  .nav-search input {
+    padding: .4rem .75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: .85rem;
+    outline: none;
+    width: 260px;
+  }
+  .nav-btn {
+    padding: .4rem .8rem;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+  .scanned-at {
+    text-align: right;
+    color: var(--muted);
+    font-size: .78rem;
+    margin-bottom: 1rem;
+  }
+  .profile {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+  }
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 3px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+    object-fit: cover;
+  }
+  .profile-info h1 { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+  .profile-info .handle { color: var(--muted); font-size: .95rem; }
+  .profile-info .meta { color: var(--muted); font-size: .82rem; margin-top: .25rem; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+  }
+  .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .value { font-size: 1.5rem; font-weight: 700; margin-top: .2rem; }
+  .value.accent { color: var(--accent); }
+  .value.green { color: var(--green); }
+  .value.orange { color: var(--orange); }
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .section-header {
+    padding: .85rem 1.25rem;
+    font-weight: 700;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .badge-count {
+    background: var(--accent);
+    color: #fff;
+    font-size: .7rem;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .notice {
+    margin: 1rem 1.25rem 0;
+    background: rgba(210,153,34,.12);
+    border: 1px solid rgba(210,153,34,.35);
+    color: #f5d38a;
+    padding: .65rem .85rem;
+    border-radius: 8px;
+    font-size: .84rem;
+    line-height: 1.45;
+  }
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th {
+    text-align: left;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .tbl td {
+    padding: .65rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: .88rem;
+    vertical-align: middle;
+  }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: rgba(88,166,255,.04); }
+  .guild-cell {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+  .guild-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .empty-msg {
+    padding: 2rem 1.25rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+  @media (max-width: 720px) {
+    .nav {
+      flex-direction: column;
+      align-items: stretch;
+      gap: .75rem;
+    }
+    .nav-search form {
+      width: 100%;
+    }
+    .nav-search input {
+      width: 100%;
+    }
+    .profile {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-brand" href="/">Roblox Tracker</a>
+  <div class="nav-search">
+    <form action="/discord" method="get">
+      <input type="text" name="discord_user" value="{{ discord_query }}" placeholder="Discord user ID or <@mention>">
+      <button class="nav-btn" type="submit">Check Again</button>
+    </form>
+  </div>
+</div>
+
+<div class="container">
+  <p class="scanned-at">Scanned {{ scanned_at }}</p>
+
+  <div class="profile">
+    {% if discord_user.avatar_url %}
+      <img class="avatar" src="{{ discord_user.avatar_url }}" alt="{{ discord_user.display_name }}">
+    {% else %}
+      <div class="avatar">{{ discord_user.display_name[0] | upper }}</div>
+    {% endif %}
+    <div class="profile-info">
+      <h1>{{ discord_user.display_name }}</h1>
+      <div class="handle">{{ discord_user.tag }} · ID {{ discord_user.user_id }}</div>
+      <div class="meta">Mutual servers visible to the configured bot only.</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Mutual Servers</div>
+      <div class="value accent">{{ mutual_guilds | length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Lookup Input</div>
+      <div class="value green">{{ discord_query }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Bot Scope</div>
+      <div class="value orange">Mutual Only</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      Mutual Servers
+      <span class="badge-count">{{ mutual_guilds | length }}</span>
+    </div>
+    <div class="notice">Discord does not expose a public API for all servers a user is in. This section only lists servers where your configured bot is present and can resolve the target member.</div>
+    {% if mutual_guilds %}
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Server</th>
+          <th>Nickname</th>
+          <th>Joined</th>
+          <th>Server ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for guild in mutual_guilds %}
+        <tr>
+          <td>
+            <div class="guild-cell">
+              {% if guild.icon_url %}
+                <img class="guild-icon" src="{{ guild.icon_url }}" alt="{{ guild.name }}">
+              {% else %}
+                <div class="guild-icon">{{ guild.name[0] | upper }}</div>
+              {% endif %}
+              <div>
+                <div style="font-weight:600;">{{ guild.name }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ guild.nickname or '—' }}</td>
+          <td>{{ guild.joined_at[:10] if guild.joined_at else '—' }}</td>
+          <td>{{ guild.guild_id }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-msg">No mutual servers were found for this user with the currently configured bot.</div>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+</html>

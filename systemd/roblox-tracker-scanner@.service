@@ -1,0 +1,23 @@
+[Unit]
+Description=Roblox Tracker Background Scanner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=%h
+ExecStart=/usr/bin/python3 -m roblox_tracker scan --interval 3600
+Restart=on-failure
+RestartSec=30
+Environment=PYTHONUNBUFFERED=1
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.roblox_tracker
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

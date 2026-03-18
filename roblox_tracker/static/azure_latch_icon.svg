@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 118" role="img" aria-label="Azure latch icon">
+  <defs>
+    <linearGradient id="dropFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e7f6ff"/>
+      <stop offset="100%" stop-color="#7ed9ff"/>
+    </linearGradient>
+    <linearGradient id="triFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb166"/>
+      <stop offset="45%" stop-color="#ffd06c"/>
+      <stop offset="100%" stop-color="#67deff"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M46 16 L67 44 L25 44 Z"
+        fill="url(#triFill)"
+        stroke="#ffffff"
+        stroke-width="3"
+        stroke-linejoin="round"/>
+
+  <path d="M46 112
+           C24 112 8 95 8 73
+           C8 53 21 40 46 40
+           C71 40 84 53 84 73
+           C84 95 68 112 46 112 Z"
+        fill="url(#dropFill)"
+        stroke="#ffffff"
+        stroke-width="3"/>
+
+  <ellipse cx="34" cy="60" rx="10" ry="7" fill="#ffffff" fill-opacity="0.52"/>
+
+  <text x="46" y="86"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="38"
+        font-weight="700"
+        fill="#0d1c2f">L</text>
+</svg>

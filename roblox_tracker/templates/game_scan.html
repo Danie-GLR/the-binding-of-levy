@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Server Condo Scan - Roblox Tracker</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --surface: #161b22;
+    --surface2: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-brand {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .nav-search form { display: flex; gap: .4rem; }
+  .nav-search input, .nav-search select {
+    padding: .4rem .75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: .85rem;
+    outline: none;
+  }
+  .nav-btn {
+    padding: .4rem .8rem;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .container { max-width: 1180px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+  .header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .header h1 { font-size: 1.2rem; margin-bottom: .15rem; }
+  .meta { color: var(--muted); font-size: .86rem; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .85rem 1rem;
+  }
+  .label { color: var(--muted); font-size: .73rem; text-transform: uppercase; letter-spacing: .04em; }
+  .value { font-size: 1.4rem; font-weight: 700; margin-top: .2rem; }
+  .value.green { color: var(--green); }
+  .value.red { color: var(--red); }
+
+  .notice {
+    background: rgba(210,153,34,.12);
+    border: 1px solid rgba(210,153,34,.4);
+    color: #f5d38a;
+    padding: .65rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: .85rem;
+    line-height: 1.45;
+  }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: .85rem 1.25rem;
+    font-weight: 700;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .badge-count {
+    background: var(--accent);
+    color: #fff;
+    font-size: .7rem;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th {
+    text-align: left;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .tbl td {
+    padding: .55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: .88rem;
+    vertical-align: top;
+  }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: rgba(88,166,255,.04); }
+
+  .pill {
+    display: inline-block;
+    padding: .14rem .5rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .pill.flagged { background: rgba(248,81,73,.15); color: var(--red); }
+  .pill.clean { background: rgba(63,185,80,.15); color: var(--green); }
+  .pill.unknown { background: rgba(210,153,34,.15); color: var(--orange); }
+  .muted { color: var(--muted); }
+  .group-list { margin-top: .3rem; color: var(--muted); font-size: .8rem; line-height: 1.35; }
+  .group-list a { color: var(--accent); text-decoration: none; }
+  .group-list a:hover { text-decoration: underline; }
+
+  .empty-msg {
+    padding: 1.5rem 1.25rem;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-brand" href="/">Roblox Tracker</a>
+  <div class="nav-search">
+    <form action="/scan-servers" method="get">
+      <input type="text" name="game_id" value="{{ game_query }}" placeholder="Game ID">
+      <select name="id_type">
+        <option value="auto">Auto</option>
+        <option value="place">Place ID</option>
+        <option value="universe">Universe ID</option>
+      </select>
+      <button class="nav-btn" type="submit">Rescan</button>
+    </form>
+  </div>
+</div>
+
+<div class="container">
+  <div class="header">
+    <h1>{{ game_name }}</h1>
+    <div class="meta">Place ID {{ place_id }} · Universe ID {{ universe_id }} · Scanned {{ scanned_at }}</div>
+    {% if cache_hit %}
+      <div class="meta" style="margin-top:.35rem;">
+        Showing cached result ({{ cache_age_seconds }}s old, TTL {{ cache_ttl_seconds }}s)
+        · <a href="/scan-servers?game_id={{ place_id }}&id_type=place&refresh=1" style="color:var(--accent);text-decoration:none;">Force refresh</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="label">Servers</div><div class="value">{{ server_count }}</div></div>
+    <div class="stat-card"><div class="label">Players (reported)</div><div class="value">{{ total_playing }}</div></div>
+    <div class="stat-card"><div class="label">Capacity</div><div class="value">{{ total_capacity }}</div></div>
+    <div class="stat-card"><div class="label">Visible Player Entries</div><div class="value">{{ visible_player_entries }}</div></div>
+    <div class="stat-card"><div class="label">Unique Players (visible)</div><div class="value">{{ unique_players }}</div></div>
+    <div class="stat-card"><div class="label">Flagged Players</div><div class="value red">{{ flagged_count }}</div></div>
+    <div class="stat-card"><div class="label">Not Flagged</div><div class="value green">{{ clean_count }}</div></div>
+    <div class="stat-card"><div class="label">Lookup Failed</div><div class="value">{{ unknown_count }}</div></div>
+  </div>
+
+  {% if servers and servers_with_visible_players == 0 %}
+    <div class="notice">
+      Roblox returned server occupancy but hid player identities for this game at this moment. The scan still covers all public servers,
+      but player-level condo checks are only possible when the API includes player identities.
+    </div>
+  {% endif %}
+
+  <div class="section">
+    <div class="section-header">Players Condo Check <span class="badge-count">{{ player_rows | length }}</span></div>
+    {% if player_rows %}
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Status</th>
+          <th>Groups</th>
+          <th>Flag Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in player_rows %}
+        <tr>
+          <td>
+            <div><strong>{{ row.display_name }}</strong></div>
+            <div class="muted">@{{ row.username }} · ID {{ row.user_id }}</div>
+          </td>
+          <td>
+            {% if row.status == 'flagged' %}
+              <span class="pill flagged">Flagged</span>
+            {% elif row.status == 'clean' %}
+              <span class="pill clean">Not Flagged</span>
+            {% else %}
+              <span class="pill unknown">Unknown</span>
+            {% endif %}
+          </td>
+          <td>{{ row.group_count }}</td>
+          <td>
+            {% if row.status == 'flagged' %}
+              {% for f in row.flags %}
+                <div><strong>{{ f.name }}</strong> <span class="muted">({{ f.reason }})</span></div>
+                <div class="group-list">
+                  <a href="https://www.roblox.com/communities/{{ f.group_id }}" target="_blank" rel="noopener">Group {{ f.group_id }}</a>
+                </div>
+              {% endfor %}
+            {% elif row.status == 'clean' %}
+              <span class="muted">No condo indicators detected</span>
+            {% else %}
+              <span class="muted">Could not verify this player right now (rate limit or API error).</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-msg">No player identities were available in the server API response, so no player-level condo checks could be listed.</div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <div class="section-header">Public Servers <span class="badge-count">{{ servers | length }}</span></div>
+    {% if servers %}
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Server ID</th>
+          <th>Playing</th>
+          <th>Capacity</th>
+          <th>FPS</th>
+          <th>Ping</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in servers %}
+        <tr>
+          <td><span class="muted">{{ s.id }}</span></td>
+          <td>{{ s.playing or 0 }}</td>
+          <td>{{ s.maxPlayers or 0 }}</td>
+          <td>{{ '%.1f'|format(s.fps or 0) }}</td>
+          <td>{{ s.ping or 0 }} ms</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-msg">No public servers found for this game.</div>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+</html>
